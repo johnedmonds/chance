@@ -1,0 +1,7 @@
+[package]
+name = "chancegamesolver"
+version = "0.1.0"
+authors = ["Pocketcookies <pocketcookies2@gmail.com>"]
+edition = "2018"
+
+[dependencies]
