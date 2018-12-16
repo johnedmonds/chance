@@ -9,7 +9,7 @@ fn main() {
         format!("{}", x)
     })
     .collect::<Vec<String>>()
-    .join(", "));
+    .join("\n"));
 }
 
 #[derive(Clone, Debug)]
