@@ -79,19 +79,14 @@ impl Operation<i32> {
 }
 
 fn find_operations_for_value(operands: Vec<i32>, target_value: i32) -> Vec<Operation<i32>> {
-    permutations(operands)
+    power_set(operands)
+    .flat_map(|sets| {
+        permutations(sets)
+    })
         .into_iter()
-        .flat_map(|operands| generate_all_operations(operands))
+        .flat_map(|operands| generate_operations(operands))
         .filter(|x| x.evaluate() == target_value)
         .collect()
-}
-
-fn generate_all_operations<T: 'static + Clone + Debug>(
-    operands: Vec<T>,
-) -> impl Iterator<Item = Operation<T>> {
-    return (1..=operands.len())
-        .flat_map(move |size| generate_operations(operands[..size].to_vec()))
-        .into_iter();
 }
 
 fn generate_operations<T: 'static + Clone + Debug>(
@@ -114,6 +109,21 @@ fn generate_operations<T: 'static + Clone + Debug>(
             })
         }))
     }
+}
+
+fn power_set<T: 'static + Clone>(vec: Vec<T>) -> impl Iterator<Item=Vec<T>> {
+    if vec.len() >= 32 {
+        panic!("Set is too large to generate power sets for.");
+    }
+    let base: i32 = 2;
+    (0..(base.pow(vec.len() as u32)))
+    .map(move |bit_vector: i32| {
+        vec.clone().into_iter().enumerate().filter(|(index, _value)| {
+            (1 << index) & bit_vector != 0
+        }).map(|(_index, value)| {
+            value
+        }).collect::<Vec<T>>()
+    })
 }
 
 fn permutations<T: Clone>(vec: Vec<T>) -> Vec<Vec<T>> {
