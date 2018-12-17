@@ -1,5 +1,9 @@
 extern crate clap;
 
+use std::hash::Hasher;
+use std::collections::HashMap;
+use std::hash::Hash;
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -22,6 +26,11 @@ fn main() {
                 .help("Values to use when searching for the target. Specified like --values=1,2,3")
                 .takes_value(true),
         )
+        .arg(
+            clap::Arg::with_name("enable_associative_operation_filter")
+                .long("enable_associative_operation_filter")
+                .help("True to filter out similar operations (operations that use the same numbers and operators but in a different order)"),
+        )
         .get_matches();
     let values: Vec<i32> = matches
         .value_of("values")
@@ -34,17 +43,35 @@ fn main() {
         .expect("Requires --target")
         .parse()
         .expect("Target must be an integer");
-    println!(
-        "{}",
-        find_operations_for_value(values, target)
-            .into_iter()
-            .map(|x| format!("{}", x))
-            .collect::<Vec<String>>()
-            .join("\n")
-    );
+    let operations = find_operations_for_value(values, target);
+    if matches.occurrences_of("enable_associative_operation_filter") > 0 {
+        println!("{}", format_operations(process_associative_operation_filter(operations)));
+    } else {
+        println!("{}", format_operations(operations));
+    }
 }
 
-#[derive(Clone, Debug)]
+fn format_operations<T: Display>(operations: impl Iterator<Item=Operation<T>>) -> String {
+    operations
+        .into_iter()
+        .map(|x| format!("{}", x))
+        .collect::<Vec<String>>()
+        .join("\n")
+}
+
+fn process_associative_operation_filter<T: Hash + Eq + Clone>(operations: impl Iterator<Item=Operation<T>>) -> impl Iterator<Item=Operation<T>> {
+    operations
+    .map(|operation| {
+        (SimilarOperationKey::from(operation.clone()), operation)
+    })
+    .collect::<HashMap<SimilarOperationKey<T>, Operation<T>>>()
+    .into_iter()
+    .map(|(_key, operation)| {
+        operation
+    })
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum Operator {
     ADD,
     SUBTRACT,
@@ -114,13 +141,12 @@ impl Operation<i32> {
     }
 }
 
-fn find_operations_for_value(operands: Vec<i32>, target_value: i32) -> Vec<Operation<i32>> {
+fn find_operations_for_value(operands: Vec<i32>, target_value: i32) -> impl Iterator<Item=Operation<i32>> {
     power_set(operands)
         .flat_map(|sets| permutations(sets))
         .into_iter()
         .flat_map(|operands| generate_operations(operands))
-        .filter(|x| x.evaluate() == target_value)
-        .collect()
+        .filter(move |x| x.evaluate() == target_value)
 }
 
 fn generate_operations<T: 'static + Clone + Debug>(
@@ -172,5 +198,41 @@ fn permutations<T: 'static + Clone + Debug>(vec: Vec<T>) -> Box<Iterator<Item = 
                 permutation
             })
         }))
+    }
+}
+
+// A key for a hash map that helps to deduplicate "similar" operations.
+// Operations are considered similar if they contain the exact same operands and operators but in different orders.
+#[derive(PartialEq, Eq)]
+struct SimilarOperationKey<T: Hash + Eq> {
+    operators: HashSet<Operator>,
+    operands: HashSet<T>
+}
+
+impl <T: Hash + Eq> Hash for SimilarOperationKey<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for operator in self.operators.iter() {
+            operator.hash(state);
+        }
+        for operand in self.operands.iter() {
+            operand.hash(state);
+        }
+    }
+}
+
+impl <T: Hash + Eq> From<Operation<T>> for SimilarOperationKey<T> {
+    fn from(operation: Operation<T>) -> Self {
+        match operation {
+            Operation::SingleOperand(value) => SimilarOperationKey {
+                operators: HashSet::new(),
+                operands: vec![value].into_iter().collect()
+            },
+            Operation::Operation(operand1, operator, operand2) => {
+                let mut key: SimilarOperationKey<T> = (*operand2).into();
+                key.operators.insert(operator);
+                key.operands.insert(operand1);
+                key
+            }
+        }
     }
 }
