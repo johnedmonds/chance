@@ -1,12 +1,12 @@
 extern crate clap;
 
-use std::hash::Hasher;
 use std::collections::HashMap;
-use std::hash::Hash;
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::hash::Hash;
+use std::hash::Hasher;
 
 fn main() {
     let matches = clap::App::new("chance")
@@ -45,13 +45,16 @@ fn main() {
         .expect("Target must be an integer");
     let operations = find_operations_for_value(values, target);
     if matches.occurrences_of("enable_associative_operation_filter") > 0 {
-        println!("{}", format_operations(process_associative_operation_filter(operations)));
+        println!(
+            "{}",
+            format_operations(process_associative_operation_filter(operations))
+        );
     } else {
         println!("{}", format_operations(operations));
     }
 }
 
-fn format_operations<T: Display>(operations: impl Iterator<Item=Operation<T>>) -> String {
+fn format_operations<T: Display>(operations: impl Iterator<Item = Operation<T>>) -> String {
     operations
         .into_iter()
         .map(|x| format!("{}", x))
@@ -59,16 +62,14 @@ fn format_operations<T: Display>(operations: impl Iterator<Item=Operation<T>>) -
         .join("\n")
 }
 
-fn process_associative_operation_filter<T: Hash + Eq + Clone>(operations: impl Iterator<Item=Operation<T>>) -> impl Iterator<Item=Operation<T>> {
+fn process_associative_operation_filter<T: Hash + Eq + Clone>(
+    operations: impl Iterator<Item = Operation<T>>,
+) -> impl Iterator<Item = Operation<T>> {
     operations
-    .map(|operation| {
-        (SimilarOperationKey::from(operation.clone()), operation)
-    })
-    .collect::<HashMap<SimilarOperationKey<T>, Operation<T>>>()
-    .into_iter()
-    .map(|(_key, operation)| {
-        operation
-    })
+        .map(|operation| (SimilarOperationKey::from(operation.clone()), operation))
+        .collect::<HashMap<SimilarOperationKey<T>, Operation<T>>>()
+        .into_iter()
+        .map(|(_key, operation)| operation)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -141,7 +142,10 @@ impl Operation<i32> {
     }
 }
 
-fn find_operations_for_value(operands: Vec<i32>, target_value: i32) -> impl Iterator<Item=Operation<i32>> {
+fn find_operations_for_value(
+    operands: Vec<i32>,
+    target_value: i32,
+) -> impl Iterator<Item = Operation<i32>> {
     power_set(operands)
         .flat_map(|sets| permutations(sets))
         .into_iter()
@@ -206,10 +210,10 @@ fn permutations<T: 'static + Clone + Debug>(vec: Vec<T>) -> Box<Iterator<Item = 
 #[derive(PartialEq, Eq)]
 struct SimilarOperationKey<T: Hash + Eq> {
     operators: HashSet<Operator>,
-    operands: HashSet<T>
+    operands: HashSet<T>,
 }
 
-impl <T: Hash + Eq> Hash for SimilarOperationKey<T> {
+impl<T: Hash + Eq> Hash for SimilarOperationKey<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         for operator in self.operators.iter() {
             operator.hash(state);
@@ -220,12 +224,12 @@ impl <T: Hash + Eq> Hash for SimilarOperationKey<T> {
     }
 }
 
-impl <T: Hash + Eq> From<Operation<T>> for SimilarOperationKey<T> {
+impl<T: Hash + Eq> From<Operation<T>> for SimilarOperationKey<T> {
     fn from(operation: Operation<T>) -> Self {
         match operation {
             Operation::SingleOperand(value) => SimilarOperationKey {
                 operators: HashSet::new(),
-                operands: vec![value].into_iter().collect()
+                operands: vec![value].into_iter().collect(),
             },
             Operation::Operation(operand1, operator, operand2) => {
                 let mut key: SimilarOperationKey<T> = (*operand2).into();
