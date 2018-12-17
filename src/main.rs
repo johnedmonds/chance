@@ -102,7 +102,7 @@ impl Operator {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 enum Operation<T> {
     SingleOperand(T),
     Operation(T, Operator, Box<Operation<T>>),
@@ -238,5 +238,42 @@ impl<T: Hash + Eq> From<Operation<T>> for SimilarOperationKey<T> {
                 key
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::permutations;
+    use crate::power_set;
+    use crate::Operation;
+    use crate::Operator;
+    use crate::find_operations_for_value;
+    use crate::process_associative_operation_filter;
+
+    #[test]
+    fn test_permutations() {
+        assert_eq!(vec![vec![2, 1], vec![1, 2]], permutations(vec![1, 2]).collect::<Vec<Vec<i32>>>());
+    }
+
+    #[test]
+    fn test_power_set() {
+        assert_eq!(vec![vec![], vec![1], vec![2], vec![1, 2]], power_set(vec![1, 2]).collect::<Vec<Vec<i32>>>());
+    }
+
+    #[test]
+    fn test_generate_operations() {
+        assert_eq!(vec![
+            Operation::Operation(2 as i32, Operator::ADD, Box::new(Operation::SingleOperand(1 as i32))),
+            Operation::Operation(1 as i32, Operator::ADD, Box::new(Operation::SingleOperand(2 as i32)))], find_operations_for_value(vec![1, 2], 3).collect::<Vec<Operation<i32>>>());
+    }
+
+    #[test]
+    fn test_filter_associative() {
+        assert_eq!(vec![
+            Operation::Operation(1 as i32, Operator::ADD, Box::new(Operation::SingleOperand(2 as i32)))],
+            process_associative_operation_filter(vec![
+            Operation::Operation(2 as i32, Operator::ADD, Box::new(Operation::SingleOperand(1 as i32))),
+            Operation::Operation(1 as i32, Operator::ADD, Box::new(Operation::SingleOperand(2 as i32)))].into_iter())
+            .collect::<Vec<Operation<i32>>>());
     }
 }
