@@ -1,11 +1,42 @@
+extern crate clap;
+
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
 
 fn main() {
+    let matches = clap::App::new("chance")
+        .version("1.0")
+        .about("Solver for the chance game")
+        .arg(
+            clap::Arg::with_name("target")
+                .short("t")
+                .long("target")
+                .help("Target value")
+                .takes_value(true),
+        )
+        .arg(
+            clap::Arg::with_name("values")
+                .short("v")
+                .long("values")
+                .help("Values to use when searching for the target. Specified like --values=1,2,3")
+                .takes_value(true),
+        )
+        .get_matches();
+    let values: Vec<i32> = matches
+        .value_of("values")
+        .expect("Requires --values")
+        .split(",")
+        .map(|value| value.parse::<i32>().expect("Values must be integers"))
+        .collect();
+    let target: i32 = matches
+        .value_of("target")
+        .expect("Requires --target")
+        .parse()
+        .expect("Target must be an integer");
     println!(
         "{}",
-        find_operations_for_value(vec![1, 2, 3], 6)
+        find_operations_for_value(values, target)
             .into_iter()
             .map(|x| format!("{}", x))
             .collect::<Vec<String>>()
@@ -136,8 +167,7 @@ fn permutations<T: 'static + Clone + Debug>(vec: Vec<T>) -> Box<Iterator<Item = 
         Box::new((0..vec.len()).flat_map(move |i| {
             let mut vec_without_i = vec.clone();
             let removed_element: T = vec_without_i.remove(i);
-            permutations(vec_without_i)
-            .map(move |mut permutation| {
+            permutations(vec_without_i).map(move |mut permutation| {
                 permutation.push(removed_element.clone());
                 permutation
             })
