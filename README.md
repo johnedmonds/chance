@@ -1,0 +1,3 @@
+# Chance Game Solver
+
+There's a math game called "Chance" with a few simple rules. You draw three playing cards and roll two dice. Then you try to find all the ways to combine the cards with math operations to get the number rolled. For example, if you draw cards (Ace, 2, 3) and roll 6 you may come up with things like 2*3 and 1+2+3. This program will automatically find all the possible equations to add up to that number.
