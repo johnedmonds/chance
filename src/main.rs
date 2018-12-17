@@ -129,19 +129,18 @@ fn power_set<T: 'static + Clone>(vec: Vec<T>) -> impl Iterator<Item = Vec<T>> {
     })
 }
 
-fn permutations<T: Clone>(vec: Vec<T>) -> Vec<Vec<T>> {
+fn permutations<T: 'static + Clone + Debug>(vec: Vec<T>) -> Box<Iterator<Item = Vec<T>>> {
     if vec.len() == 1 {
-        return vec![vec];
-    }
-    return (0..vec.len())
-        .flat_map(|i| {
+        Box::new(vec![vec].into_iter())
+    } else {
+        Box::new((0..vec.len()).flat_map(move |i| {
             let mut vec_without_i = vec.clone();
             let removed_element: T = vec_without_i.remove(i);
-            let mut permutations_vec = permutations(vec_without_i);
-            for permutation in &mut permutations_vec {
+            permutations(vec_without_i)
+            .map(move |mut permutation| {
                 permutation.push(removed_element.clone());
-            }
-            permutations_vec
-        })
-        .collect();
+                permutation
+            })
+        }))
+    }
 }
